@@ -1,0 +1,188 @@
+---
+import mysql from "mysql2/promise";
+
+
+
+export async function getData(offset, limit) {
+  let connection;
+  try {
+    connection = await mysql.createConnection({
+      host: "srv747.hstgr.io",
+      port: "3306",
+      user: "u212050690_Jaivial",
+      password: "Jva_Mvc_5171",
+      database: "u212050690_Astrodatabase",
+    });
+    console.log("Conexión a la base de datos establecida con éxito.");
+
+    let searchQuery = "";
+    if (searchQuery === "") {
+      const [rows] = await connection.execute(
+        "SELECT id, direccion, tipo, uso, superficie, ano_construccion FROM inmuebles LIMIT ?, ?",
+        [offset, limit],
+      );
+
+      const [count] = await connection.execute(
+        "SELECT COUNT(*) as count FROM inmuebles",
+      );
+
+      const totalRows = count[0].count;
+
+      return { rows, totalRows };
+    }
+  } catch (error) {
+    console.error("Error al obtener datos:", error);
+    throw error; // Re-throw the error after logging it
+  } finally {
+    if (connection) {
+      await connection.end();
+      console.log("Conexión a la base de datos cerrada.");
+    }
+  }
+}
+
+const perPage = 50;
+let currentPage = 1;
+let totalRows = 0;
+let data = [];
+let filteredData = [];
+
+async function fetchData() {
+  const offset = (currentPage - 1) * perPage;
+  const result = await getData(offset, perPage);
+  data = result.rows;
+  totalRows = result.totalRows;
+  filteredData = [...data];
+}
+
+function nextPage() {
+  if (currentPage < Math.ceil(totalRows / perPage)) {
+    currentPage++;
+    fetchData();
+  }
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    fetchData();
+  }
+}
+
+function search(query) {
+  if (query) {
+    filteredData = data.filter((row) => row.direccion.includes(query));
+  } else {
+    filteredData = [...data];
+  }
+}
+
+async function onSubmit(event) {
+  event.preventDefault(); // Prevent default form submission
+  const formData = new FormData(event.target);
+  const query = formData.get("query");
+  search(query);
+}
+
+// Fetch initial data
+await fetchData();
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tabla de Datos</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid black;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+        color: black;
+        text-align: center;
+      }
+      .pagination {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+      }
+      .pagination button {
+        margin: 0 5px;
+        padding: 10px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tabla de Datos</h1>
+
+    <!-- Barra de búsqueda -->
+    <div>
+      <form onsubmit={onSubmit}>
+        <input
+          type="text"
+          name="query"
+          placeholder="Buscar por dirección"
+          id="searchInput"
+        />
+        <button type="submit">Buscar</button>
+        <button type="button" onclick="clearSearch()">Limpiar</button>
+      </form>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Direccion</th>
+          <th>Tipo</th>
+          <th>Uso</th>
+          <th>Superficie</th>
+          <th>Año De Construcción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          filteredData.length > 0
+            ? filteredData.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.direccion}</td>
+                  <td>{row.tipo}</td>
+                  <td>{row.uso}</td>
+                  <td>{row.ano_construccion}</td>
+                  <td>{row.superficie}</td>
+                </tr>
+              ))
+            : data.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.direccion}</td>
+                  <td>{row.tipo}</td>
+                  <td>{row.uso}</td>
+                  <td>{row.superficie}</td>
+                  <td>{row.ano_construccion}</td>
+                </tr>
+              ))
+        }
+      </tbody>
+    </table>
+
+    <!-- Botones de paginación -->
+    <div class="pagination">
+      <button onclick={prevPage} disabled={currentPage === 1}>Anterior</button>
+      <span>Página {currentPage} de {Math.ceil(totalRows / perPage)}</span>
+      <button
+        onclick={nextPage}
+        disabled={currentPage === Math.ceil(totalRows / perPage)}
+        >Siguiente</button
+      >
+    </div>
+  </body>
+</html>
