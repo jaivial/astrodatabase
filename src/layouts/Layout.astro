@@ -1,4 +1,6 @@
 ---
+import { WebForms } from "@astro-utils/forms/forms.js";
+
 interface Props {
 	title: string;
 }
@@ -17,7 +19,9 @@ const { title } = Astro.props;
 		<title>{title}</title>
 	</head>
 	<body>
-		<slot />
+		
+			<slot />
+
 	</body>
 </html>
 <style is:global>

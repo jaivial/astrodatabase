@@ -38,3 +38,15 @@ export async function searchData(query, offset, limit) {
         }
     }
 }
+
+// Extracting query, offset, and limit from the request
+const { query } = req.body;
+console.log("Query:", query);
+
+// Calling the searchData function with extracted parameters
+const { rows, totalRows } = await searchData(query, 0, 1000);
+
+// Sending the results back as a response
+res.json({ rows, totalRows });
+
+module.exports = { totalRows };
